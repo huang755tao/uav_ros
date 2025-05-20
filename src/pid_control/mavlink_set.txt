@@ -1,0 +1,2 @@
+mavlink stauts
+param show -a

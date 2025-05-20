@@ -1,0 +1,2 @@
+pid_control
+-DCATKIN_DEVEL_PREFIX=/home/ht/src/px4_ws/devel -DCMAKE_INSTALL_PREFIX=/home/ht/src/px4_ws/install -G Unix Makefiles
