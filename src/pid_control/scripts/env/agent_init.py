@@ -56,24 +56,28 @@ class AgentInit:
         self.t0 = rospy.Time.now().to_sec()
         self.current_time = rospy.Time.now()
 
+        if use_gazebo == False:
+            self.group = "uav0/"
+        else:
+            self.group = None
         # 订阅器
-        self.state_sub = rospy.Subscriber("mavros/state", State, callback=self.state_cb)
-        self.odom_sub = rospy.Subscriber("mavros/local_position/odom", Odometry, callback=self.uav_odom_cb)
-        self.battery_sub = rospy.Subscriber("mavros/battery", BatteryState, callback=self.uav_battery_cb)
+        self.state_sub = rospy.Subscriber(self.group+"mavros/state", State, callback=self.state_cb)
+        self.odom_sub = rospy.Subscriber(self.group+"mavros/local_position/odom", Odometry, callback=self.uav_odom_cb)
+        self.battery_sub = rospy.Subscriber(self.group+"mavros/battery", BatteryState, callback=self.uav_battery_cb)
         # self.uav_rate_sub = rospy.Subscriber("mavros/imu/data", Imu, callback=self.uav_rate_cb)
 
         # 发布器
-        self.att_cmd_pub = rospy.Publisher("mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=10)   # 传输姿态控制指令
-        self.pos_cmd_pub = rospy.Publisher("mavros/setpoint_position/local", PoseStamped, queue_size=10)    # 传输定点位置
+        self.att_cmd_pub = rospy.Publisher(self.group+"mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=10)   # 传输姿态控制指令
+        self.pos_cmd_pub = rospy.Publisher(self.group+"mavros/setpoint_position/local", PoseStamped, queue_size=10)    # 传输定点位置
         # self.odom_pub = rospy.Publisher('drone_odom', Odometry, queue_size=10)                              # 初始化轨迹消息发布器
-        self.trajectory_pub = rospy.Publisher('reference_path', Path, queue_size=10)                        # 初始化参考轨迹发布器
+        self.trajectory_pub = rospy.Publisher(self.group+'reference_path', Path, queue_size=10)                        # 初始化参考轨迹发布器
 
         # 服务客户端
-        rospy.wait_for_service("/mavros/cmd/arming", timeout=10)
-        self.arming_client = rospy.ServiceProxy("mavros/cmd/arming", CommandBool) # 创建一个服务客户端的 “代理对象”，允许客户端像调用本地函数一样调用远程服务。
+        rospy.wait_for_service(self.group+"mavros/cmd/arming", timeout=10)
+        self.arming_client = rospy.ServiceProxy(self.group+"mavros/cmd/arming", CommandBool) # 创建一个服务客户端的 “代理对象”，允许客户端像调用本地函数一样调用远程服务。
     
-        rospy.wait_for_service("/mavros/set_mode", timeout=10)
-        self.set_mode_client = rospy.ServiceProxy("mavros/set_mode", SetMode)
+        rospy.wait_for_service(self.group+"/mavros/set_mode", timeout=10)
+        self.set_mode_client = rospy.ServiceProxy(self.group+"mavros/set_mode", SetMode)
 
         # 控制指令初始化
         self.att_target = AttitudeTarget()
@@ -416,7 +420,7 @@ def example_controller():
     # 返回值：(滚转角, 俯仰角, 偏航角, 推力)
     return (0.0, 0.0, 0.0, 1.5*9.8)  # 示例：悬停指令
 
-if __name__ == "__main__":
-    controller = AgentInit()
-    controller.run(example_controller,simulation_time=10.)
-    # minimal_run()
+# if __name__ == "__main__":
+#     controller = AgentInit()
+#     controller.run(example_controller,simulation_time=10.)
+#     # minimal_run()
