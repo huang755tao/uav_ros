@@ -23,12 +23,13 @@ if __name__ == "__main__":
     approch_time = 5
     simulation_time = 40
     uav = UAV_ROS(dt=dt, use_gazebo=True)
-    control = PdTBC()
+    control = PdTBC(dt=dt)
+    observer = PTDO(dt=dt)
 
 
     # 实例化控制器
     # 双闭环的参数
-    pid_ctrl = PidControl(kp_pos=np.array([0.5, 0.5, 1.]),
+    pid_ctrl = PidControl(kp_pos=np.array([0.5, 0.5, 0.8]),
                 ki_pos=np.array([0.001, 0.00, 0.00]),
                 kd_pos=np.array([0., 0., 0.0]),
                 kp_vel=np.array([3.5, 3.5, 5.]),
@@ -43,10 +44,10 @@ if __name__ == "__main__":
     pdt_ctrl = PdTBC(dt=dt,
                         m=uav.m,
                         k_eta12=np.array([0.1, 0.1, 0.1]),
-                        l_eta1=np.array([10.,10., 1.]),
+                        l_eta1=np.array([20, 20., 10.]),
 
                         k_eta22=np.array([0.2, 0.2, 0.2]),
-                        l_eta2=np.array([0.1, 0.1, 0.1]), 
+                        l_eta2=np.array([1., 1., 1.]), 
 
                         l_eta3=np.array([0.5, 0.5, 0.5]),
                         l_eta4=np.array([0.5, 0.5, 0.5]),          
@@ -55,8 +56,8 @@ if __name__ == "__main__":
                         p_eta= 0.1,
                         T_eta= 10.)
 
-    pdt_ctrl.k11 = np.array([8., 8., 15.])
-    pdt_ctrl.k21 = np.array([30., 30., 40.])
+    pdt_ctrl.k11 = np.array([10., 10., 12.])
+    pdt_ctrl.k21 = np.array([30., 30., 45.])
 
 
     # 实例化参考轨迹
@@ -65,27 +66,27 @@ if __name__ == "__main__":
     #     trajectory_type="circular",
     #     total_time=simulation_time,  # 总时长10秒（约3个周期，因频率0.3Hz周期≈3.33秒）
     #     dt=dt,          # 时间步长0.01秒（轨迹平滑）
-    #     radius=1.5,
-    #     z_offset=2.0,
+    #     radius=1.2,
+    #     z_offset=0.0,
     #     freq=0.2
     # )
 
-    # circle_gen = TrajectoryGenerator(
-    #     trajectory_type="sine_cosine",
-    #     total_time=simulation_time,
-    #     dt=dt,
-    #     amplitudes=(1.2, 1.2, 0.5),  # X/Y/Z轴振幅
-    #     freqs=(0.2, 0.2, 0.2)         # X/Y/Z轴频率
-    # )
-
     circle_gen = TrajectoryGenerator(
-        trajectory_type="figure8",
-        total_time=simulation_time,  # 总时长10秒（约5个周期，频率0.5Hz周期2秒）
+        trajectory_type="sine_cosine",
+        total_time=simulation_time,
         dt=dt,
-        radius=1.0,
-        z_offset=0.,
-        freq=0.2
+        amplitudes=(0.0, 0.6, 0.5),  # X/Y/Z轴振幅
+        freqs=(0.2, 0.2, 0.2)         # X/Y/Z轴频率
     )
+
+    # circle_gen = TrajectoryGenerator(
+    #     trajectory_type="figure8",
+    #     total_time=simulation_time,  # 总时长10秒（约5个周期，频率0.5Hz周期2秒）
+    #     dt=dt,
+    #     radius=1.0,
+    #     z_offset=0.,
+    #     freq=0.1
+    # )
 
     red_p0 = np.zeros(3)
     ref = np.zeros(3)
@@ -105,19 +106,17 @@ if __name__ == "__main__":
         uav.pub_position_keep()
         uav.rate.sleep()
 
-    rospy.loginfo('Record ref')
+    rospy.loginfo('Record')
     uav.is_record_ref = True
+    uav.is_record_obs = True
     rospy.loginfo('Show in rviz')
     uav.is_show_rviz =  True
 
     rospy.loginfo("Switching to attitude control...")
     rospy.loginfo("Use pid to approch z...")
     distance = 1
-    distance_tolerant = 0.1
+    distance_tolerant = 0.5
     while (not rospy.is_shutdown()) and (distance > distance_tolerant):
-        # current_x = uav.uav_states[0]
-        # current_y = uav.uav_states[1]
-
         current_x = 2
         current_y = 2
 
@@ -127,7 +126,6 @@ if __name__ == "__main__":
         uav_state = uav.uav_states[:6]
         pid_ctrl.update_dual(state=uav_state, ref_state=ref_state)
         uo = pid_ctrl.control
-        print(uav_state[0:3])
         phi_d, theta_d, thrust = uav.u_to_angle_dir(uo)
         psi_d = 0
 
@@ -176,29 +174,30 @@ if __name__ == "__main__":
         current_x = uav.uav_states[0]
         current_y = uav.uav_states[1]
         current_z = uav.uav_states[2]
+        uav_state = uav.uav_states[:6]
 
         traject = circle_gen.get_point(t=sim_t)
-
+        traject.acc[2] += 0. * np.cos(3*np.pi/2*sim_t)
         ref_state = np.array([traject.pos[0],traject.pos[1],traject.pos[2],
                                traject.vel[0],traject.vel[1],traject.vel[2],
                                traject.acc[0],traject.acc[1],traject.acc[2]])
         
+        sys_dynamic = - uav.kt / uav.m * uav_state[3:6] + pdt_ctrl.control
+        obs = observer.observe(x=uav_state[3:6], system_dynamic=sys_dynamic, u=pdt_ctrl.control)
+
         # ref_state = np.zeros(9)
         # ref_state[0:3]=np.array([4,4,4])
-        
-        uav_state = uav.uav_states[:6]
-        
-        # pid_ctrl.update_dual(state=uav_state, ref_state=ref_state)
-        # bc_ctrl.update(state=uav_state, ref_state=ref_state)
-        pdt_ctrl.update(state=uav_state, ref_state=ref_state)
+        obs[2] = -obs[2]*1.
+        pid_ctrl.update_dual(state=uav_state, ref_state=ref_state)
+        bc_ctrl.update(state=uav_state, ref_state=ref_state)
+        pdt_ctrl.update(state=uav_state, ref_state=ref_state, obs=-0.*(obs.clip(-np.array([1., 1., 4.5]), np.array([1., 1., 4.5]))))
 
         # print(pdt_ctrl.control-dual_pid.control, 'pdt_ctrl')
         # uo = pid_ctrl.control
-        # uo = bc_ctrl.control
-        uo = pdt_ctrl.control
+        uo = bc_ctrl.control
+        # uo = pdt_ctrl.control
 
-        phi_d, theta_d, thrust = uav.u_to_angle_dir(uo)
-        # phi_d, theta_d, thrust = (0, 0, 0.72*9.8)
+        phi_d, theta_d, thrust = uav.u_to_angle_dir(uo, is_idea=False)
         psi_d = 0
 
         uav.publish_attitude_command(phi_d, theta_d, psi_d, thrust)
@@ -207,7 +206,7 @@ if __name__ == "__main__":
         # uav.set_target_position=(ref_state[0], ref_state[1], ref_state[2])
         # uav.pub_target_position()
 
-        uav.data_record(sim_t,ref_state)
+        uav.data_record(sim_t,ref_state,obs)
         uav.rate.sleep()
 
     rospy.loginfo('Simulation is finished')

@@ -21,7 +21,7 @@ class AgentInit:
         # 基础参数
         self.dt = dt
         self.use_gazebo = use_gazebo
-        self.thrust_scale = 0.72 / 1.5 / 9.8 if use_gazebo else 0.35 / 0.72 / 9.8
+        self.thrust_scale = 0.704 / 1.5 / 9.8 if use_gazebo else 0.35 / 0.72 / 9.8
                 
         # 状态标志
         # self.is_record = False

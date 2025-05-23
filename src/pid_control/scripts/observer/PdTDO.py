@@ -11,21 +11,20 @@ class PTDO:
     def __init__(
         self,
         dt: float = 0.01,
-        T: float = 2.5,
-        p: float = 0.2,
-        m1: int = 8,
-        m2: int = 8,
-        k_d2: float = 10.,
-        k_l2: float = 10.,
-        k_e2: float = 10.,
+        T: float = 1.,
+        p: float = 0.1,
+        m1: int = 10.,
+        m2: int = 50.,
+        k_d2: float =0.1,
+        k_l2: float = 0.1,
         dim: int = 3,
         # 新增抗突变参数
-        delta_filter_tau: float = 0.05,  # Delta低通滤波时间常数（s）
-        dz_rate_limit: float = 30.0,    # dz变化率限制（1/s）
+        delta_filter_tau: float = 0.01,  # Delta低通滤波时间常数（s）
+        dz_rate_limit: float = 100.0,    # dz变化率限制（1/s）
         z_delta_sat: float = 5.0        # z_delta饱和阈值（防止过饱和）
     ) -> None:
         # 参数校验
-        if any([param <= 0 for param in [dt, T, p, m1, m2, k_d2, k_l2, k_e2, delta_filter_tau]]):
+        if any([param <= 0 for param in [dt, T, p, m1, m2, k_d2, k_l2, delta_filter_tau]]):
             raise ValueError("所有正参数必须大于0")
         if dim < 1:
             raise ValueError("维度参数必须≥1")
@@ -49,9 +48,6 @@ class PTDO:
         
         self.k_l2 = k_l2
         self.k_l1 = self._compute_a(0.5, self.p, self.k_l2)
-        
-        self.k_e2 = k_e2
-        self.k_e1 = self._compute_a(0.5, self.p, self.k_e2)
        
         # 观测器内部状态（初始化更合理）
         self.L = np.zeros(self.dim)  # 初始化为0避免初始突变
@@ -108,7 +104,8 @@ class PTDO:
         
         # 3. 观测器状态微分计算（增加变化率限制）
         raw_dz = syst_dynamic + self.Delta
-        self.dz = self._rate_limit(raw_dz, self.prev_dz, self.dz_rate_limit)  # 限制dz变化率
+        # self.dz = self._rate_limit(raw_dz, self.prev_dz, self.dz_rate_limit)  # 限制dz变化率
+        self.dz = raw_dz
         self.prev_dz = self.dz  # 保存当前dz用于下一时刻限制
         
         # 4. 非线性积分项更新（限制输入范围）
@@ -145,7 +142,7 @@ class PTDO:
             self.normal_update(system_dynamic, x, u)  # normal模式使用简化方法
         else:
             raise ValueError(f"无效的观测器类型config='{config}'，仅支持'PD'或'normal'")
-        
+
         # 离散时间积分更新状态（增加积分限幅）
         self.z = self._saturate(self.z + self.dz * self.dt, 10.0 * self.z_delta_sat)  # 限制z的范围
         self.L = self._saturate(self.L + self.dL * self.dt, 10.0 * self.z_delta_sat)  # 限制L的范围
@@ -160,4 +157,3 @@ class PTDO:
         self.L = np.zeros(self.dim)  # 积分项保持0初始化
         self.Delta = np.zeros(self.dim)  # 扰动估计初始化为0
         self.prev_dz = np.zeros(self.dim)  # 初始微分状态
-    

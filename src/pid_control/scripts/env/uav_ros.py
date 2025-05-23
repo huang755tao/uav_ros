@@ -46,14 +46,15 @@ class UAV_ROS(AgentInit):
 		self.q = 0.0
 		self.r = 0.0
 
-		self.ref_data_log = []
-
 		self.dt = dt
 		self.n = 0  # Number of time steps
 		self.time = 0.0  # Current time
 
 		self.is_record_ref = False
+		self.is_record_obs = False
 
+		self.ref_data_log = []
+		self.obs_data_log = []
 		# 
 
 		'''Control parameters'''
@@ -122,7 +123,7 @@ class UAV_ROS(AgentInit):
 		])
 		return (self.throttle / self.m) * thrust_orientation - np.array([0.0, 0.0, self.g])
 
-	def u_to_angle_dir(self, uo: np.ndarray):
+	def u_to_angle_dir(self, uo: np.ndarray, is_idea=True):
 		"""
 		Convert desired acceleration to desired attitude and total thrust
 		Args:
@@ -132,7 +133,8 @@ class UAV_ROS(AgentInit):
 		"""
 		[self.phi, self.theta, self.psi] = self.uav_att()
 
-		u1 = uo + np.array([0.0, 0.0, self.g])  # Compensate for gravity
+		u1 = uo + np.array([0., 0., self.g])  # Compensate for gravity
+
 		uf = self.m * np.linalg.norm(u1)         # Total thrust
 		
 		# Vertical acceleration cannot be less than -g (prevent negative thrust)
@@ -155,11 +157,14 @@ class UAV_ROS(AgentInit):
 		# Calculate desired pitch angle
 		tan_theta_dir = (uo[0] * np.cos(self.psi) + uo[1] * np.sin(self.psi)) / u1[2]
 		theta_d = np.arctan(tan_theta_dir)
+		# if not is_idea:
+		# 	# u1 += np.array([3.5, 3.5, 2])
+		# 	uf = uf * 0.7
 		
 		return (phi_d, theta_d, uf)
 
 	# -------------------- Logging and shutdown handling --------------------
-	def data_record(self, sim_t: float, ref_state: np.ndarray=np.zeros(9)) -> None:
+	def data_record(self, sim_t: float, ref_state: np.ndarray=np.zeros(9), obs_state: np.ndarray=np.zeros(3)) -> None:
 		"""
 		Log reference trajectory data (strict dimension check)
 		Args:
@@ -182,6 +187,14 @@ class UAV_ROS(AgentInit):
 				"ref_x": ref_state[0], "ref_y": ref_state[1], "ref_z": ref_state[2],
 				"ref_vx": ref_state[3], "ref_vy": ref_state[4], "ref_vz": ref_state[5],
 				"ref_ax": ref_state[6], "ref_ay": ref_state[7], "ref_az": ref_state[8]
+			})
+		if self.is_record_obs:
+			if obs_state.ndim != 1 or obs_state.size != 3:
+				raise ValueError(f"Observer state dimension error, expected (9, ), got {obs_state.shape}")
+
+			self.obs_data_log.append({
+				"timestamp": sim_t,
+				"obs_dx": obs_state[0], "obs_dy": obs_state[1], "obs_dz": obs_state[2]
 			})
 
 	def shutdown_handler(self):
@@ -208,6 +221,10 @@ class UAV_ROS(AgentInit):
 				filename2 = data_dir / f"{timestamp}_ref_data.csv"
 				df = pd.DataFrame(self.ref_data_log)
 				df.to_csv(filename2, index=False)
+			if len(self.obs_data_log) != 0:
+				filename2 = data_dir / f"{timestamp}_obs_data.csv"
+				df = pd.DataFrame(self.obs_data_log)
+				df.to_csv(filename2, index=False)			
 
 			rospy.loginfo(f"Data saved to {filename1} and _data")
 		else:
@@ -255,8 +272,8 @@ class UAV_ROS(AgentInit):
 
 def example_controller():
     """Example controller: Hover command (returns desired attitude and thrust)"""
-    return (0.0, 0.0, 0.0, 0.73*9.8)  # (roll, pitch, yaw, thrust)
+    return (0.0, 0.0, 0.0, 0.75*9.8)  # (roll, pitch, yaw, thrust)
 
-if __name__ == "__main__":
-    controller = UAV_ROS()
-    controller.run(example_controller, simulation_time=10.0)
+# if __name__ == "__main__":
+#     controller = UAV_ROS()
+#     controller.run(example_controller, simulation_time=10.0)

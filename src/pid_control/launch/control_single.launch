@@ -1,0 +1,9 @@
+<launch>
+    <arg name="config" default='vicon' />
+    <param name="config" value="$(arg config)" />
+
+    <node pkg="uav_control_ros" type="rl_param_opt.py" name="uav0_rl_param_opt" output="screen" />
+    <node pkg="uav_control_ros" type="control_single.py" name="uav0_control_single" output="screen">
+        <rosparam file="$(find uav_control_ros)/config/$(arg config)/uav0_config_single.yaml" command="load" />
+    </node>
+</launch>

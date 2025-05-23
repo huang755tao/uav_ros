@@ -1,0 +1,8 @@
+<launch>
+    <arg name="config" default='vicon' />
+    <param name="config" value="$(arg config)" />
+
+    <node pkg="uav_control_ros" type="control_lk_smc.py" name="control_lk_smc" output="screen">
+        <rosparam file="$(find uav_control_ros)/config/$(arg config)/lk_config.yaml" command="load" />
+    </node>
+</launch>
