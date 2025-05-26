@@ -1,0 +1,10 @@
+catkin_pkg==1.0.0
+catkin_pkg_modules==1.0.0
+env==0.1.0
+matplotlib==3.1.2
+numpy==1.24.4
+numpy==1.17.4
+pandas==2.0.3
+rospy==1.17.0
+scipy==1.15.3
+setuptools==45.2.0

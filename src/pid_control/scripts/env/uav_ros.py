@@ -5,7 +5,7 @@ from datetime import datetime
 import pandas as pd
 
 from utils import *
-from env.agent_init import AgentInit
+from env.agent_init_v2 import AgentInit
 
 
 class UAV_ROS(AgentInit):
@@ -23,7 +23,12 @@ class UAV_ROS(AgentInit):
 		data_log (list): UAV state log
 		ref_data_log (list): Reference trajectory log
 	"""
-	def __init__(self, m: float = 1.5, g: float = 9.8, kt: float = 1e-3, dt: float = 0.02, use_gazebo: bool = True):
+	def __init__(self, m: float = 1.5, 
+			  		   g: float = 9.8, 
+					   kt: float = 1e-3, 
+					   dt: float = 0.02, 
+					   use_gazebo: bool = True, 
+					   control_name: str = ""):
 		super().__init__(dt=dt, use_gazebo=use_gazebo)
 
 		self.m = m  # UAV mass
@@ -55,7 +60,8 @@ class UAV_ROS(AgentInit):
 
 		self.ref_data_log = []
 		self.obs_data_log = []
-		# 
+		
+		self.control_name = control_name
 
 		'''Control parameters'''
 		self.throttle = self.m * self.g  # Throttle (total thrust)
@@ -199,37 +205,76 @@ class UAV_ROS(AgentInit):
 
 	def shutdown_handler(self):
 		"""
-		Handle data saving when node shuts down (user confirmation required)
+		Handle data saving when node shuts down (with zip compression support)
 		"""
-		if len(self.data_log) == 0:
-			rospy.loginfo("No data to save")
-			return
+		try:
+			if len(self.data_log) == 0:
+				rospy.loginfo("No data to save")
+				return
 
-		user_input = input("\nData recording completed. Enter '1' to save data, '0' to discard: ")
-		while user_input not in ['0', '1']:
-			user_input = input("Invalid input. Please enter '1' to save or '0' to discard: ")
-		
-		if user_input == '1':
-			data_dir = Filepath("scripts/data")
-			data_dir.mkdir(exist_ok=True)
-			timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-			# Save UAV state data
-			filename1 = data_dir / f"{timestamp}_uav_data.csv"
-			df = pd.DataFrame(self.data_log)
-			df.to_csv(filename1, index=False)
-			if len(self.ref_data_log) != 0:
-				filename2 = data_dir / f"{timestamp}_ref_data.csv"
-				df = pd.DataFrame(self.ref_data_log)
-				df.to_csv(filename2, index=False)
-			if len(self.obs_data_log) != 0:
-				filename2 = data_dir / f"{timestamp}_obs_data.csv"
-				df = pd.DataFrame(self.obs_data_log)
-				df.to_csv(filename2, index=False)			
+			# 修正控制名称类型检查（原逻辑错误）
+			if not isinstance(self.control_name, str) or self.control_name.strip() == "":
+				rospy.logerr("Controller name is invalid or empty")
+				return
 
-			rospy.loginfo(f"Data saved to {filename1} and _data")
-		else:
-			rospy.loginfo("Data discarded")
+			save_chioce = input("\nData recording completed. Enter '1' to save data, '0' to discard: ")
+			while save_chioce not in ['0', '1']:
+				save_chioce = input("Invalid input. Please enter '1' to save or '0' to discard: ")
+			
+			if save_chioce == '1':
+				data_dir = Filepath("scripts/data")
+				data_dir.mkdir(exist_ok=True)
+				timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+				base_name = f"{timestamp}_{self.control_name}"
 
+				# 保存原始数据文件
+				file_paths = []
+				# UAV状态数据（必存）
+				uav_path = data_dir / f"{base_name}_uav_data.csv"
+				pd.DataFrame(self.data_log).to_csv(uav_path, index=False)
+				file_paths.append(uav_path)
+				
+				# 参考数据（可选）
+				if len(self.ref_data_log) != 0:
+					ref_path = data_dir / f"{base_name}_ref_data.csv"
+					pd.DataFrame(self.ref_data_log).to_csv(ref_path, index=False)
+					file_paths.append(ref_path)
+				
+				# 观测数据（可选）
+				if len(self.obs_data_log) != 0:
+					obs_path = data_dir / f"{base_name}_obs_data.csv"
+					pd.DataFrame(self.obs_data_log).to_csv(obs_path, index=False)
+					file_paths.append(obs_path)
+
+				rospy.loginfo(f"Data saved to: {[str(p) for p in file_paths]}")
+
+				# 询问是否压缩
+				zip_choice = input("Do you want to compress these files into a zip? (0/1): ").strip().upper()
+				while zip_choice not in ['0', '1']:
+					zip_choice = input("Invalid input. Please enter '1' to compress or '0' to skip: ").strip().upper()
+
+				if zip_choice == '1':
+					zip_path = data_dir / f"{base_name}_data.zip"
+					try:
+						print('save')
+						import zipfile
+						with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+							for file in file_paths:
+								if file.exists():  # 确保文件存在再压缩
+									zf.write(file, arcname=file.name)  # 保留文件名
+						rospy.loginfo(f"Successfully compressed to: {zip_path}")
+						
+						# 可选：是否删除原始文件（根据需求决定，这里注释掉保留原始文件）
+						for file in file_paths:
+							file.unlink(missing_ok=True)
+					except Exception as e:
+						rospy.logerr(f"Failed to create zip file: {str(e)}")
+			else:
+				rospy.loginfo("Data discarded")
+
+		except Exception as e:
+			rospy.logerr(f"Error during shutdown handling: {str(e)}")
+    
 	def reach_target_point_by_pid(self):
 		rospy.loginfo(f"Moving to target position: {self.target_position} by pid")
 

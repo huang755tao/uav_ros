@@ -1,0 +1,75 @@
+<launch>
+    <!-- ==================== 顶层共享参数定义 ==================== -->
+    <!-- Vicon 服务器配置 -->
+    <arg name="vicon_server" default="192.168.50.142" />  <!-- Vicon 服务器 IP -->
+    <arg name="vicon_port" default="3883" />              <!-- VRPN 服务端口 -->
+    
+    <!-- 无人机自身的 Vicon 刚体名称（与 drone_id 关联） -->
+    <arg name="drone_id" default="0" />                   <!-- 无人机编号（命名空间为 uav0） -->
+    <arg name="drone_name" default="uav$(arg drone_id)" />  <!-- uav0 在 Vicon 中的刚体名称 -->
+    
+    <!-- 多目标配置：uav0 自身 + 其他目标（空格分隔） -->
+    <arg name="vicon_targets" default="$(arg drone_name) targetA targetB" />  <!-- 关键修改：包含 uav0 -->
+    
+    <!-- MAVROS 相关配置 -->
+    <arg name="fcu_url" default="/dev/ttyUSB0:921600" />  <!-- 飞控连接 URL -->
+    <arg name="gcs_url" default="udp://@192.168.10.203" /> <!-- 地面站连接 URL -->
+    <arg name="fcu_protocol" default="v2.0" />            <!-- MAVLink 协议版本 -->
+
+
+    <!-- ==================== 无人机 uav0 命名空间 ==================== -->
+    <group ns="uav$(arg drone_id)">  <!-- 命名空间：uav0 -->
+        <!--  VRPN 客户端节点（多目标跟踪) -->
+        <node pkg="vrpn_client_ros" type="vrpn_client_node" name="vrpn_client_node" output="screen">
+            <!-- VRPN 客户端参数（显式跟踪所有目标） -->
+            <rosparam subst_value="true">
+                server: $(arg vicon_server)         <!-- Vicon 服务器 IP -->
+                port: $(arg vicon_port)             <!-- Vicon 服务端口 -->
+                update_frequency: 100.0             <!-- 数据更新频率（Hz） -->
+                frame_id: world                     <!-- 参考坐标系（与 MAVROS 一致） -->
+                use_server_time: false              <!-- 使用 ROS 时间 -->
+                broadcast_tf: true                  <!-- 广播 TF 变换（可选） -->
+                refresh_tracker_frequency: 0.0       <!-- 关闭自动刷新（已显式指定 trackers） -->
+                trackers: $(arg vicon_targets)       <!-- 关键修改：跟踪 uav0 + 其他目标 -->
+            </rosparam>
+
+            <!-- 话题重映射：将 VRPN 数据映射到 MAVROS 需要的路径 -->
+            <remap from="/vrpn_client_node/$(arg drone_name)/pose" 
+                   to="/mavros/vision_pose/pose" />  <!-- 目标话题：uav0/mavros/vision_pose/pose -->
+            <remap from="/vrpn_client_node/$(arg drone_name)/twist" 
+                   to="/mavros/vision_speed/speed_vector" />  <!-- 目标话题：uav0/mavros/vision_speed/speed_vector -->
+
+            <!-- 动态重映射所有目标的话题（包括 uav0 自身） -->
+            <group if="$(eval 'vicon_targets' in locals() and len(arg('vicon_targets').split()) > 0)">
+                <!-- 遍历 vicon_targets 列表，为非 uav0 的目标生成重映射规则 -->
+                <arg name="target_list" value="$(arg vicon_targets)" />
+                <foreach item="target" in="$(arg target_list)">
+                    <!-- 仅当目标不是 uav0 时，生成重映射 -->
+                    <group if="$(eval arg('target') != arg('drone_name'))">
+                        <remap from="/vrpn_client_node/$(arg target)/pose" 
+                            to="/vicon/$(arg target)/pose" />  <!-- 其他目标路径：/uav0/vicon/targetA/pose 等 -->
+                        <remap from="/vrpn_client_node/$(arg target)/twist" 
+                            to="/vicon/$(arg target)/twist" />  <!-- 其他目标速度数据路径 -->
+                    </group>
+                </foreach>
+            </group>
+
+        </node>
+
+
+        <!-- MAVROS 节点（uav0 自身定位输入）-->
+        <include file="$(find mavros)/launch/node.launch">
+            <!-- MAVROS 配置 -->
+            <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
+            <arg name="config_yaml" value="$(find mavros)/launch/px4_config.yaml" />
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="$(arg gcs_url)" />
+            <arg name="fcu_protocol" value="$(arg fcu_protocol)" />
+            <arg name="tgt_system" value="$(eval 1 + arg('drone_id'))" />  <!-- 系统 ID=1（避免与地面站冲突） -->
+            <arg name="tgt_component" value="1" />
+            <arg name="log_output" value="screen" />
+            <arg name="respawn_mavros" default="false" />
+        </include>
+
+    </group>
+</launch>

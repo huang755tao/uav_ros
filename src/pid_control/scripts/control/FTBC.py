@@ -7,23 +7,20 @@ import numpy as np
 def sig(x, a, kt=100.):
     return np.fabs(x) ** a * np.sign(kt*x)
 
-def calculate_k1(p1, p2, k2):
-    numerator = (1 - p1) + p2 * np.log(1 + 1/k2)
-    denominator = (1 - p1) * p2
-    return 3 ** p2 * numerator / denominator
-
-class PdTBC:
+class FTBC:
     def __init__(self,
                  
                  dt: float = 0.01,                                  # Control period (s)
                  ctrl0: np.ndarray = np.array([0.0, 0.0, 0.0]),      # Initial control value
 
                  # Virtual control law parameters (phase 1)
+                 k_eta11: np.ndarray = np.array([1., 1., 1.]),
                  k_eta12: np.ndarray = np.array([0.5, 0.5, 0.5]),    # Saturation function gain (Equation 49)
                  l_eta1: np.ndarray = np.array([15., 15., 15.]),     # Saturation function parameter (Equation 49)
         
                  # Virtual control law parameters (phase 2)
-                 k_eta22: np.ndarray = np.array([2.0, 2.0, 2.0]),    # Saturation function gain (Equation 52)
+                 k_eta21: np.ndarray = np.array([4.0, 4.0, 4.0]),
+                 k_eta22: np.ndarray = np.array([1.0, 1.0, 1.0]),    # Saturation function gain (Equation 52)
                  l_eta2: np.ndarray = np.array([5, 5, 5]),           # Saturation function parameter (Equation 52)
         
                  # Adaptive term parameters (Equation 53)
@@ -53,15 +50,15 @@ class PdTBC:
         self.T = T_eta          # Fixed time constant
         
         # Control law gains (maintain paper symbol system with annotation)
+        self.k11 = k_eta11
         self.k12 = k_eta12      # Phase 1 saturation gain (Equation 49: k_eta12)
-        self.k11 = calculate_k1(p1=0.5, p2=self.p, k2=self.k12)
         self.l1 = l_eta1        # Phase 1 saturation parameter (Equation 49: l_eta1)
         print('k11:', self.k11)
         print('k12:', self.k12)
         print('l1:', self.l1)
 
+        self.k21 = k_eta21
         self.k22 = k_eta22      # Phase 2 saturation gain (Equation 52: k_eta22)
-        self.k21 = calculate_k1(p1=0.5, p2=self.p, k2=self.k22)
         self.l2 = l_eta2        # Phase 2 saturation parameter (Equation 52: l_eta2)
         print('k21:', self.k21)
         print('k22:', self.k22)
@@ -90,20 +87,20 @@ class PdTBC:
         self.alpah_obs = FirstOrderFilter(dt=dt,kt=np.ones(3)*100)  # Fixed time differentiator
 
     def vt(self, ref_vel):
-        h_sig = 1 + self.p + self.p * np.sign(np.fabs(self.e_eta)-1)
+        h_sig = 1 + 2*self.p
         return ref_vel - self.k11 / self.T * (self.k12 * np.tanh(self.l1*self.e_eta) + sig(x=self.e_eta, a=h_sig, kt=100.))
     
     def vt_dot(self, ref_acc):
-        h_sig = 1 + self.p + self.p * np.sign(np.fabs(self.e_eta)-1)
+        h_sig = 1 + 2*self.p
         return ref_acc - self.k11 / self.T *(self.k12 * self.l1 * (1 - np.tanh(self.l1*self.e_eta)**2)*self.e_eta_d
                                              + h_sig * sig(x=self.e_eta, a=h_sig, kt=100.) * self.e_eta_d)
 
     def vt2(self):
-        h_sig = 1 + self.p + self.p * np.sign(np.fabs(self.e_eta2)-1)
+        h_sig = 1 + 2*self.p
         return -self.k21 / self.T *(self.k22 * np.tanh(self.l2 * self.e_eta2) + sig(x=self.e_eta2, a=h_sig, kt=100.))
     
     def update_L(self):
-        h_sig = 1 + self.p + self.p * np.sign(np.fabs(self.L)-1)
+        h_sig = 1 + 2*self.p
         return (np.tanh(self.l3*self.e_eta2)*self.e_eta2 - self.k31/self.T * (self.k32*np.tanh(self.l4*self.L) + (2+2*self.p)*self.L**h_sig)) * self.dt
     
     def update(self, 
@@ -117,8 +114,8 @@ class PdTBC:
         ref_vel = ref_state[3:6]
         ref_acc = ref_state[6:9]
 
-        self.e_eta = (eta - ref).clip(-np.ones(3), np.ones(3))*0.75
-        self.e_eta_d = (eta_d - ref_vel).clip(-7.5*np.ones(3), 7.5*np.ones(3))
+        self.e_eta = (eta - ref).clip(-np.ones(3), np.ones(3))*0.5
+        self.e_eta_d = (eta_d - ref_vel).clip(-5*np.ones(3), 5*np.ones(3))
 
         alpha = self.vt(ref_vel=ref_vel)
         alpha_hat, alpah_d_hat = self.alpah_obs.update(x=alpha)
@@ -130,7 +127,7 @@ class PdTBC:
 
         self.eta_i = 1. * self.eta_i + (self.e_eta + 0.1*np.tanh(20*self.e_eta))*self.dt
 
-        term1 = - self.e_eta + self.k_t / self.m * eta_d - 0.* self.e_eta2
+        term1 = - self.e_eta + self.k_t / self.m * eta_d
         term2 = - obs + alpha_d
         term3 = - self.L * np.tanh(self.l3*self.e_eta2) * 1. + self.eta_i*0.05
 

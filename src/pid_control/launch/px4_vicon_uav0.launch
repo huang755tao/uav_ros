@@ -1,0 +1,61 @@
+<launch>
+    <!-- ==================== 顶层共享参数定义 ==================== -->
+    <!-- Vicon 服务器配置 -->
+    <arg name="vicon_server" default="192.168.50.142" />  <!-- Vicon 服务器 IP -->
+    <arg name="vicon_port" default="3883" />              <!-- VRPN 服务端口 -->
+    
+    <!-- 无人机基础配置 -->
+    <arg name="drone_id" default="0" />                   <!-- 无人机编号（用于命名空间和话题） -->
+    <arg name="drone_name" default="gh034_glander_0" />   <!-- Vicon 中的刚体名称 -->
+    
+    <!-- MAVROS 相关配置 -->
+    <arg name="fcu_url" default="/dev/ttyUSB0:921600" />  <!-- 飞控连接 URL（串口/网络） -->
+    <arg name="gcs_url" default="udp://@192.168.10.203" /> <!-- 地面站连接 URL -->
+    <arg name="fcu_protocol" default="v2.0" />            <!-- MAVLink 协议版本 -->
+
+
+    <!-- ==================== 无人机 uav0 命名空间 ==================== -->
+    <group ns="uav$(arg drone_id)">  <!-- 命名空间：uav0 -->
+        <!--  VRPN 客户端节点-->
+        <node pkg="vrpn_client_ros" type="vrpn_client_node" name="vrpn_client_node" output="screen">
+            <!-- VRPN 客户端参数（通过 rosparam 加载，支持变量替换） -->
+            <rosparam subst_value="true">
+                server: $(arg vicon_server)         <!-- Vicon 服务器 IP（共享参数） -->
+                port: $(arg vicon_port)             <!-- Vicon 服务端口（共享参数） -->
+                update_frequency: 100.0             <!-- 数据更新频率（Hz） -->
+                frame_id: world                     <!-- 参考坐标系（与 MAVROS 一致） -->
+                use_server_time: false              <!-- 使用 ROS 时间（非 Vicon 服务器时间） -->
+                broadcast_tf: true                  <!-- 广播 TF 变换（可选） -->
+                trackers: $(arg drone_name)         <!-- 显式指定要跟踪的刚体 -->
+                refresh_tracker_frequency: 0.0      <!-- 关闭自动刷新 -->
+            </rosparam>
+
+            <!-- 话题重映射：将 VRPN 数据映射到 MAVROS 需要的路径 -->
+            <remap from="/vrpn_client_node/$(arg drone_name)/pose" 
+                   to="/mavros/vision_pose/pose" />  <!-- 目标话题：uav0/mavros/vision_pose/pose -->
+            <remap from="/vrpn_client_node/$(arg drone_name)/twist" 
+                   to="/mavros/vision_speed/speed_vector" />  <!-- 目标话题：uav0/mavros/vision_speed/speed_vector -->
+        </node>
+
+
+        <!-- MAVROS 节点 -->
+        <include file="$(find mavros)/launch/node.launch">
+            <!-- MAVROS 插件与配置文件 -->
+            <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
+            <arg name="config_yaml" value="$(find mavros)/launch/px4_config.yaml" />
+
+            <!-- 连接参数（共享顶层参数） -->
+            <arg name="fcu_url" value="$(arg fcu_url)" />       <!-- 飞控连接 URL -->
+            <arg name="gcs_url" value="$(arg gcs_url)" />       <!-- 地面站连接 URL -->
+            <arg name="fcu_protocol" value="$(arg fcu_protocol)" />  <!-- MAVLink 协议版本 -->
+
+            <!-- 目标系统/组件 ID（根据无人机编号动态生成） -->
+            <arg name="tgt_system" value="$(eval 1 + arg('drone_id'))" />  <!-- 系统 ID = 1 + 无人机编号（如 uav0 对应 1） -->
+            <arg name="tgt_component" value="1" />  <!-- 组件 ID（默认 1） -->
+
+            <!-- 日志输出与重启策略 -->
+            <arg name="log_output" value="screen" />        <!-- 日志输出到控制台 -->
+            <arg name="respawn_mavros" default="false" />   <!-- MAVROS 崩溃后不自动重启 -->
+        </include>
+    </group>
+</launch>

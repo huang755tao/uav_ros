@@ -83,3 +83,20 @@ class Normalization:
             self.running_ms.update(x)
         x = (x - self.running_ms.mean) / (self.running_ms.std + 1e-8)
         return x
+    
+def data_record_to_file(data_log: dict, file_name: str="uav_data", control_name: str=""):
+    from pathlib import Path as Filepath
+    from datetime import datetime
+    import pandas as pd
+
+    data_dir = Filepath("scripts/data")
+    data_dir.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    base_name = f"{timestamp}_{control_name}"
+
+    # 保存原始数据文件
+    file_paths = []
+    # UAV状态数据（必存）
+    uav_path = data_dir / f"{base_name}_{file_name}.csv"
+    pd.DataFrame(data_log).to_csv(uav_path, index=False)
+    file_paths.append(uav_path)

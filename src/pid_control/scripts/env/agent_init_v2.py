@@ -347,34 +347,59 @@ class AgentInit:
             rospy.loginfo("Data discarded")
 
     def initialize_system(self):
-        """系统初始化流程"""
-        # 等待飞控连接
-        rospy.loginfo("initialization...")
+        """系统初始化流程（支持Ctrl+C中断退出）"""
+        try:
+            rospy.loginfo("initialization...")
 
-        # 等待飞控连接
-        rospy.loginfo("1,Waiting for FCU connection...")
-        while not rospy.is_shutdown() and not self.current_state.connected:
-            self.rate.sleep()
-        
-        # 发送初始位置指令（OFFBOARD模式需要）
-        for _ in range(100):
-            if rospy.is_shutdown():
-                break
-            self.pub_position_keep()
-            self.rate.sleep()
-        
-        # 切换模式并解锁
-        if not self.set_offboard_mode():
-            rospy.signal_shutdown("Failed to switch to OFFBOARD mode")
-            return
+            # 等待飞控连接
+            rospy.loginfo("1,Waiting for FCU connection...")
+            while not rospy.is_shutdown() and not self.current_state.connected:
+                self.rate.sleep()
+                if rospy.is_shutdown():  # 提前检查避免循环阻塞
+                    return
 
-        # 输入1，arm电机
-        user_input = input("Please enter '1' to arm and start flight: ")
-        while user_input != '1':
-            user_input = input("Invalid input. Please enter '1' to continue: ")
-        self.arm_safe()
-        
-        rospy.loginfo("System initialization complete")
+            # 发送初始位置指令（OFFBOARD模式需要）
+            rospy.loginfo("2,Sending initial position command...")
+            for _ in range(100):
+                if rospy.is_shutdown():
+                    break
+                self.pub_position_keep()
+                self.rate.sleep()
+
+            # 切换模式并解锁
+            rospy.loginfo("3,Switching to OFFBOARD mode...")
+            if not self.set_offboard_mode():
+                rospy.logerr("Failed to switch to OFFBOARD mode")
+                rospy.signal_shutdown("OFFBOARD mode switch failed")
+                return
+
+            # 输入1，arm电机（支持Ctrl+C中断）
+            rospy.loginfo("4,Please enter '1' to arm and start flight (Ctrl+C to exit)")
+            while True:
+                try:
+                    user_input = input("Please enter '1' to continue: ")
+                    if user_input == '1':
+                        break
+                    else:
+                        rospy.logwarn("Invalid input, please try again")
+                except KeyboardInterrupt:  # 捕获Ctrl+C中断
+                    rospy.loginfo("User interrupted, exiting...")
+                    rospy.signal_shutdown("User manual exit")
+                    return
+
+            self.arm_safe()
+            rospy.loginfo("System initialization complete")
+
+        except rospy.ROSInterruptException:  # 处理ROS自身的中断（如节点关闭）
+            rospy.loginfo("ROS interrupted, exiting initialization")
+        except Exception as e:  # 通用异常捕获
+            rospy.logerr(f"Unexpected error during initialization: {str(e)}")
+            rospy.signal_shutdown("Initialization error")
+        finally:
+            # 可选：这里可以添加清理逻辑（如断开连接、停止发布等）
+            # self.cleanup_resources()
+            pass
+    
 
     def run(self, attitude_controller, simulation_time: float):
         """
