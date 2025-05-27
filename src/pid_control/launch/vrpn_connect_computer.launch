@@ -1,0 +1,43 @@
+<launch>
+  <!-- 基础参数配置 -->
+  <arg name="vicon_server" default="192.168.50.142"/>
+  <arg name="drone_name" default="gh034_glander_0"/>
+  <arg name="drone_id" default="uav0"/>
+  <arg name="vrpn_tracker_topic" default="/vrpn_client_node/$(arg drone_name)/tracker_data"/>  <!-- VRPN原始话题 -->
+  <arg name="local_pkg_name" default="PID_CONTROL"/>
+  
+  <!-- 输出话题映射配置 -->
+  <arg name="input_pose_topic" default="$(arg drone_id)/vicon/pose"/>  <!-- 姿态输出话题 -->
+  <arg name="input_twist_topic" default="$(arg drone_id)/vicon/twist"/>  <!-- 速度输出话题 -->
+  <arg name="output_path_topic" default="$(arg drone_id)/vicon/path"/>  <!-- 轨迹输出话题 -->
+  <arg name="tf_child_frame" default="$(arg drone_id)"/>  <!-- TF子帧名称 -->
+
+  <!-- VRPN客户端节点 -->
+  <node pkg="vrpn_client_ros" type="vrpn_client_node" name="vrpn_client_node" output="screen">
+    <rosparam subst_value="true">
+      server: $(arg vicon_server)
+      port: 3883
+      update_frequency: 100.0
+      frame_id: world
+      use_server_time: false
+      broadcast_tf: true
+      refresh_tracker_frequency: 1.0
+    </rosparam>
+    <!-- 可选：重映射VRPN原始输出话题 -->
+    <remap from="/vrpn_client_node/$(arg drone_name)/pose" to="$(arg input_pose_topic)"/>
+    <remap from="/vrpn_client_node/$(arg drone_name)/twist" to="$(arg input_twist_topic)"/>
+  </node>
+
+  <!-- Vicon数据解析节点 -->
+  <node pkg="$(local_pkg_name)" type="vicon_data_parser.py" name="vicon_$(arg drone_id)" output="screen">
+    <!-- 参数传递 -->
+    <param name="drone_name" value="$(arg drone_id)"/>
+    <param name="pose_topic" value="$(arg input_pose_topic)"/>  <!-- 姿态输出映射 -->
+    <param name="twist_topic" value="$(arg input_twist_topic)"/>  <!-- 速度输出映射 -->
+    <param name="path_topic" value="$(arg output_path_topic)"/>  <!-- 轨迹输出映射 -->
+    <param name="child_frame" value="$(arg tf_child_frame)"/>  <!-- TF子帧映射 -->
+  </node>
+
+  <!-- 可选：RViz快捷启动（带配置） -->
+  <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find local_pkg_name)/config/vicon_display.rviz" output="screen"/> -->
+</launch>

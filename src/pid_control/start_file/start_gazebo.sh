@@ -3,7 +3,7 @@
 # 定义路径变量（根据实际情况修改）
 PX4_DIR="$HOME/src/PX4-Autopilot"
 WORKSPACE_DIR="$HOME/src/px4_ws"
-RVIZ_CONFIG="$WORKSPACE_DIR/src/pid_control/rviz_config/default.rviz"
+RVIZ_CONFIG="$WORKSPACE_DIR/src/pid_control/config/default_gazebo.rviz"
 PYTHON_SCRIPT="$WORKSPACE_DIR/src/pid_control/scripts/odom_to_path_converter.py"
 
 # 清理已有 ROS/Gazebo 进程（初始清理）
@@ -59,10 +59,10 @@ fi
 # gnome-terminal --title="Control Node" -- bash -c "source $WORKSPACE_DIR/devel/setup.bash && rosrun pid_control main.py; exec bash" &
 # control_pid=$!
 
-# 4. 启动 odom_to_path_converter 节点（后台运行，记录 PID）
-source $WORKSPACE_DIR/devel/setup.bash
-rosrun pid_control $(basename $PYTHON_SCRIPT) &
-odom_pid=$!
+# # 4. 启动 odom_to_path_converter 节点（后台运行，记录 PID）
+# source $WORKSPACE_DIR/devel/setup.bash
+# rosrun pid_control $(basename $PYTHON_SCRIPT) &
+# odom_pid=$!
 
 # 5. 启动 RVIZ 可视化（独立终端，标题唯一）
 gnome-terminal --title="RVIZ" -- bash -c "source /opt/ros/noetic/setup.bash && rosrun rviz rviz -d $RVIZ_CONFIG; exec bash" &

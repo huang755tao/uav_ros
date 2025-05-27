@@ -1,0 +1,14 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/ht/src/uav_ros_yyf/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/home/ht/src/px4_ws/src/pid_control/scripts",
+        "/home/ht/src/px4_ws/src/pid_control/scripts"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/ht/src/uav_ros_yyf/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/home/ht/src/px4_ws/src/pid_control/scripts",
+        "/home/ht/src/px4_ws/src/pid_control/scripts"
+    ]
+}

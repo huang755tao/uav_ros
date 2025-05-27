@@ -7,7 +7,4 @@
 # new environment variables
 
 # modified environment variables
-export CMAKE_PREFIX_PATH="/home/ht/src/px4_ws/devel:$CMAKE_PREFIX_PATH"
 export PWD='/home/ht/src/px4_ws/build'
-export ROSLISP_PACKAGE_DIRECTORIES='/home/ht/src/px4_ws/devel/share/common-lisp'
-export ROS_PACKAGE_PATH="/home/ht/src/px4_ws/src:$ROS_PACKAGE_PATH"
