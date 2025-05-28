@@ -117,7 +117,7 @@ class PdTBC:
         ref_vel = ref_state[3:6]
         ref_acc = ref_state[6:9]
 
-        self.e_eta = (eta - ref).clip(-np.ones(3), np.ones(3))*0.75
+        self.e_eta = (eta - ref).clip(-np.ones(3), np.ones(3))*0.7
         self.e_eta_d = (eta_d - ref_vel).clip(-7.5*np.ones(3), 7.5*np.ones(3))
 
         alpha = self.vt(ref_vel=ref_vel)
@@ -130,9 +130,9 @@ class PdTBC:
 
         self.eta_i = 1. * self.eta_i + (self.e_eta + 0.1*np.tanh(20*self.e_eta))*self.dt
 
-        term1 = - self.e_eta + self.k_t / self.m * eta_d - 0.* self.e_eta2
+        term1 = - self.e_eta + self.k_t / self.m * eta_d - 0.1* self.e_eta2
         term2 = - obs + alpha_d
-        term3 = - self.L * np.tanh(self.l3*self.e_eta2) * 1. + self.eta_i*0.05
+        term3 = - self.L * np.tanh(self.l3*self.e_eta2) * 1. + self.eta_i*0.00
 
         # print(alpah_d, 'alpha_d')
 

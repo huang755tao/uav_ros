@@ -1,6 +1,6 @@
 # CMake generated Testfile for 
-# Source directory: /home/ht/src/px4_ws/src/pid_control
-# Build directory: /home/ht/src/px4_ws/build/pid_control
+# Source directory: /home/glander_0/huangtao/uav_ros/src/pid_control
+# Build directory: /home/glander_0/huangtao/uav_ros/build/pid_control
 # 
 # This file includes the relevant testing commands required for 
 # testing this directory and lists subdirectories to be tested as well.

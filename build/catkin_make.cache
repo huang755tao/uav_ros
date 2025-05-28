@@ -1,2 +1,2 @@
 pid_control
--DCATKIN_DEVEL_PREFIX=/home/ht/src/px4_ws/devel -DCMAKE_INSTALL_PREFIX=/home/ht/src/px4_ws/install -G Unix Makefiles
+-DCATKIN_DEVEL_PREFIX=/home/glander_0/huangtao/uav_ros/devel -DCMAKE_INSTALL_PREFIX=/home/glander_0/huangtao/uav_ros/install -G Unix Makefiles

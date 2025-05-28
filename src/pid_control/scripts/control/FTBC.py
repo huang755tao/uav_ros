@@ -114,8 +114,8 @@ class FTBC:
         ref_vel = ref_state[3:6]
         ref_acc = ref_state[6:9]
 
-        self.e_eta = (eta - ref).clip(-np.ones(3), np.ones(3))*0.5
-        self.e_eta_d = (eta_d - ref_vel).clip(-5*np.ones(3), 5*np.ones(3))
+        self.e_eta = (eta - ref).clip(-np.ones(3), np.ones(3))*0.7
+        self.e_eta_d = (eta_d - ref_vel).clip(-7*np.ones(3), 7*np.ones(3))
 
         alpha = self.vt(ref_vel=ref_vel)
         alpha_hat, alpah_d_hat = self.alpah_obs.update(x=alpha)
@@ -129,7 +129,7 @@ class FTBC:
 
         term1 = - self.e_eta + self.k_t / self.m * eta_d
         term2 = - obs + alpha_d
-        term3 = - self.L * np.tanh(self.l3*self.e_eta2) * 1. + self.eta_i*0.05
+        term3 = - self.L * np.tanh(self.l3*self.e_eta2) * 0. + self.eta_i*0.05
 
         # print(alpah_d, 'alpha_d')
 

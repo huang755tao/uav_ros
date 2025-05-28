@@ -89,7 +89,9 @@ def data_record_to_file(data_log: dict, file_name: str="uav_data", control_name:
     from datetime import datetime
     import pandas as pd
 
-    data_dir = Filepath("scripts/data")
+    script_dir = Filepath(__file__).parent
+    # 构造目标data目录的绝对路径（向上一级到scripts目录，再创建data子目录）
+    data_dir = script_dir.parent / "data"  # 等价于：scripts目录下的data子目录)
     data_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     base_name = f"{timestamp}_{control_name}"

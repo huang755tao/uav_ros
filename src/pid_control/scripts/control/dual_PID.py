@@ -114,7 +114,7 @@ class PidControl(object):
                ref_state: np.ndarray=np.zeros(9)):
         " position loop "
         self.err_p_pos = np.tanh(0.5*(ref_state[0: 3] - state[0: 3]))
-        self.err_p_pos = (ref_state[0: 3] - state[0: 3]).clip(np.array([-1, -1, -1]), np.array([1, 1,1]))+0.1*np.tanh(50*(ref_state[0: 3] - state[0: 3]))#.clip(np.array([-0.5, -0.5, -0.5]), np.array([0.5, 0.5, 0.5]))
+        self.err_p_pos = (ref_state[0: 3] - state[0: 3]).clip(np.array([-1, -1, -1]), np.array([1, 1,1]))+0.1*np.tanh(20*(ref_state[0: 3] - state[0: 3]))#.clip(np.array([-0.5, -0.5, -0.5]), np.array([0.5, 0.5, 0.5]))
         
         for i in range(3):
             self.err_i_pos[i] += abs(self.err_p_pos[i].clip(-0.5, 0.5))**self.p_v[i]*np.tanh(100*self.err_p_pos[i])*self.dt

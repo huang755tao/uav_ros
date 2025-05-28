@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/ht/src/px4_ws/src
+CMAKE_SOURCE_DIR = /home/glander_0/huangtao/uav_ros/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/ht/src/px4_ws/build
+CMAKE_BINARY_DIR = /home/glander_0/huangtao/uav_ros/build
 
 # Utility rule file for tests.
 
@@ -67,6 +67,6 @@ CMakeFiles/tests.dir/clean:
 .PHONY : CMakeFiles/tests.dir/clean
 
 CMakeFiles/tests.dir/depend:
-	cd /home/ht/src/px4_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/ht/src/px4_ws/src /home/ht/src/px4_ws/src /home/ht/src/px4_ws/build /home/ht/src/px4_ws/build /home/ht/src/px4_ws/build/CMakeFiles/tests.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/glander_0/huangtao/uav_ros/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/glander_0/huangtao/uav_ros/src /home/glander_0/huangtao/uav_ros/src /home/glander_0/huangtao/uav_ros/build /home/glander_0/huangtao/uav_ros/build /home/glander_0/huangtao/uav_ros/build/CMakeFiles/tests.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/tests.dir/depend
 

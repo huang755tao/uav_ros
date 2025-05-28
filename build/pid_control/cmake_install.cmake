@@ -1,8 +1,8 @@
-# Install script for directory: /home/ht/src/px4_ws/src/pid_control
+# Install script for directory: /home/glander_0/huangtao/uav_ros/src/pid_control
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/ht/src/px4_ws/install")
+  set(CMAKE_INSTALL_PREFIX "/home/glander_0/huangtao/uav_ros/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -38,17 +38,17 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/ht/src/px4_ws/build/pid_control/catkin_generated/installspace/pid_control.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/glander_0/huangtao/uav_ros/build/pid_control/catkin_generated/installspace/pid_control.pc")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/pid_control/cmake" TYPE FILE FILES
-    "/home/ht/src/px4_ws/build/pid_control/catkin_generated/installspace/pid_controlConfig.cmake"
-    "/home/ht/src/px4_ws/build/pid_control/catkin_generated/installspace/pid_controlConfig-version.cmake"
+    "/home/glander_0/huangtao/uav_ros/build/pid_control/catkin_generated/installspace/pid_controlConfig.cmake"
+    "/home/glander_0/huangtao/uav_ros/build/pid_control/catkin_generated/installspace/pid_controlConfig-version.cmake"
     )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/pid_control" TYPE FILE FILES "/home/ht/src/px4_ws/src/pid_control/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/pid_control" TYPE FILE FILES "/home/glander_0/huangtao/uav_ros/src/pid_control/package.xml")
 endif()
 

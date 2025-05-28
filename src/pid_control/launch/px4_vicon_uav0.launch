@@ -9,8 +9,9 @@
     <arg name="drone_name" default="gh034_glander_0" />   <!-- Vicon 中的刚体名称 -->
     
     <!-- MAVROS 相关配置 -->
-    <arg name="fcu_url" default="/dev/ttyUSB0:921600" />  <!-- 飞控连接 URL（串口/网络） -->
-    <arg name="gcs_url" default="udp://@192.168.10.203" /> <!-- 地面站连接 URL -->
+    <arg name="fcu_url" default="/dev/ttyUSB1:921600" />  <!-- 飞控连接 URL（串口/网络） -->
+	<arg name="gcs_url" default="udp-b://@" />
+    <!-- <arg name="gcs_url" default="udp://@192.168.10.203" /> 地面站连接 URL -->
     <arg name="fcu_protocol" default="v2.0" />            <!-- MAVLink 协议版本 -->
 
 

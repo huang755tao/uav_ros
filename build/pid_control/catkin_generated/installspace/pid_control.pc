@@ -1,4 +1,4 @@
-prefix=/home/ht/src/px4_ws/install
+prefix=/home/glander_0/huangtao/uav_ros/install
 
 Name: pid_control
 Description: Description of pid_control

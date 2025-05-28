@@ -7,4 +7,4 @@
 # new environment variables
 
 # modified environment variables
-export PWD='/home/ht/src/px4_ws/build'
+export PWD='/home/glander_0/huangtao/uav_ros/build'

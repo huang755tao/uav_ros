@@ -61,7 +61,7 @@ def scp_transfer(local_file, remote_host, remote_port, remote_user, remote_dir):
 if __name__ == "__main__":
     # ==================== 用户配置（根据实际情况修改） ====================
     DATA_DIR = os.path.dirname(os.path.abspath(__file__))  # 本地数据目录（同之前代码）
-    REMOTE_HOST = "172.16.4.142"                        # 远程主机 IP
+    REMOTE_HOST = "192.168.50.203"                        # 远程主机 IP
     REMOTE_PORT = 22                                      # SSH 端口（默认 22）
     REMOTE_USER = "ht"                                  # 远程用户名
     REMOTE_DIR = "/home/ht/src/px4_ws/src/pid_control/scripts/data"  # 远程目标目录

@@ -23,7 +23,7 @@ class UAV_ROS(AgentInit):
 		data_log (list): UAV state log
 		ref_data_log (list): Reference trajectory log
 	"""
-	def __init__(self, m: float = 1.5, 
+	def __init__(self, m: float = 0.72, 
 			  		   g: float = 9.8, 
 					   kt: float = 1e-3, 
 					   dt: float = 0.02, 
@@ -170,7 +170,7 @@ class UAV_ROS(AgentInit):
 		return (phi_d, theta_d, uf)
 
 	# -------------------- Logging and shutdown handling --------------------
-	def data_record(self, sim_t: float, ref_state: np.ndarray=np.zeros(9), obs_state: np.ndarray=np.zeros(3)) -> None:
+	def data_record(self, sim_t: float, thrust: float = 0., ref_state: np.ndarray=np.zeros(9), obs_state: np.ndarray=np.zeros(3)) -> None:
 		"""
 		Log reference trajectory data (strict dimension check)
 		Args:
@@ -182,7 +182,8 @@ class UAV_ROS(AgentInit):
 			"x":self.uav_states[0], "y":self.uav_states[1], "z":self.uav_states[2],
 			"vx":self.uav_states[3], "vy":self.uav_states[4], "vz":self.uav_states[5],
 			"phi":self.uav_states[6], "theta":self.uav_states[7], "psi":self.uav_states[8],
-			"p":self.uav_states[9], "q":self.uav_states[10], "r":self.uav_states[11]})
+			"p":self.uav_states[9], "q":self.uav_states[10], "r":self.uav_states[11],
+			"thrust": thrust})
 
 		if self.is_record_ref:
 			if ref_state.ndim != 1 or ref_state.size != 9:
@@ -222,7 +223,10 @@ class UAV_ROS(AgentInit):
 				save_chioce = input("Invalid input. Please enter '1' to save or '0' to discard: ")
 			
 			if save_chioce == '1':
-				data_dir = Filepath("scripts/data")
+				script_dir = Filepath(__file__).parent
+				# 构造目标data目录的绝对路径（向上一级到scripts目录，再创建data子目录）
+				data_dir = script_dir.parent / "data"  # 等价于：scripts目录下的data子目录)
+				print('file path', data_dir)
 				data_dir.mkdir(exist_ok=True)
 				timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 				base_name = f"{timestamp}_{self.control_name}"
